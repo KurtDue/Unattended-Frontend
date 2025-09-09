@@ -99,7 +99,7 @@
           <!-- Door/Lock sensors -->
           <div v-if="sensor.type === 'door_lock' || sensor.type === 'door_sensor'" class="mb-4">
             <div 
-              class="flex items-center justify-center w-full py-3 rounded-md text-sm font-medium"
+              class="flex items-center justify-center w-full py-3 rounded-md text-sm font-medium mb-3"
               :class="{
                 'bg-green-100 text-green-800': sensor.value === 'locked' || sensor.value === 'closed',
                 'bg-red-100 text-red-800': sensor.value === 'unlocked' || sensor.value === 'open'
@@ -112,6 +112,36 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path>
               </svg>
               {{ sensor.value }}
+            </div>
+            
+            <!-- Unlock/Lock Button for door locks -->
+            <div v-if="sensor.type === 'door_lock'" class="flex justify-center">
+              <button 
+                @click="toggleDoorLock(sensor)"
+                :disabled="isUnlocking || isLoading"
+                class="flex items-center px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                :class="{
+                  'text-white bg-red-600 hover:bg-red-700 focus:ring-red-500': sensor.value === 'locked',
+                  'text-white bg-green-600 hover:bg-green-700 focus:ring-green-500': sensor.value === 'unlocked'
+                }"
+              >
+                <svg v-if="isUnlocking && unlockingSensorId === sensor.id" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <svg v-else-if="sensor.value === 'locked'" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path>
+                </svg>
+                <svg v-else class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+                {{ isUnlocking && unlockingSensorId === sensor.id 
+                  ? 'Processing...' 
+                  : sensor.value === 'locked' 
+                    ? 'Unlock Door' 
+                    : 'Lock Door' 
+                }}
+              </button>
             </div>
           </div>
 
@@ -220,6 +250,8 @@ import type { Sensor } from '@/types'
 
 const dataStore = useStoreDataStore()
 const isLoading = ref(false)
+const isUnlocking = ref(false)
+const unlockingSensorId = ref<number | null>(null)
 const selectedSensor = ref<Sensor | null>(null)
 
 const activeSensorsCount = computed(() => 
@@ -259,6 +291,41 @@ const refreshSensor = async (sensor: Sensor) => {
   }
   
   isLoading.value = false
+}
+
+const toggleDoorLock = async (sensor: Sensor) => {
+  if (sensor.type !== 'door_lock') return
+  
+  const action = sensor.value === 'locked' ? 'unlock' : 'lock'
+  const confirmMessage = action === 'unlock' 
+    ? `Are you sure you want to unlock ${sensor.name}?`
+    : `Are you sure you want to lock ${sensor.name}?`
+  
+  if (!confirm(confirmMessage)) {
+    return
+  }
+  
+  isUnlocking.value = true
+  unlockingSensorId.value = sensor.id
+  
+  try {
+    // Simulate API call to door control system
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // Toggle the lock state
+    sensor.value = sensor.value === 'locked' ? 'unlocked' : 'locked'
+    sensor.lastUpdate = new Date().toISOString()
+    
+    // Show success notification
+    alert(`${sensor.name} has been ${sensor.value}!`)
+    
+  } catch (error) {
+    console.error('Door lock toggle failed:', error)
+    alert(`Failed to ${action} ${sensor.name}. Please try again.`)
+  } finally {
+    isUnlocking.value = false
+    unlockingSensorId.value = null
+  }
 }
 
 const configureSensor = (sensor: Sensor) => {

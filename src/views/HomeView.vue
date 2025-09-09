@@ -145,7 +145,48 @@
     <!-- Quick Actions -->
     <div class="bg-white rounded-lg shadow p-6">
       <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <!-- Door Unlock Quick Action -->
+        <div v-if="mainDoorLock" class="col-span-1">
+          <button 
+            @click="toggleMainDoorLock"
+            :disabled="isUnlockingDoor"
+            class="w-full flex flex-col items-center p-4 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            :class="{
+              'border-green-300 bg-green-50 hover:bg-green-100 text-green-800 focus:ring-green-500': mainDoorLock.value === 'locked',
+              'border-red-300 bg-red-50 hover:bg-red-100 text-red-800 focus:ring-red-500': mainDoorLock.value === 'unlocked'
+            }"
+          >
+            <div class="flex items-center justify-center w-8 h-8 rounded-full mb-2"
+                 :class="{
+                   'bg-green-200': mainDoorLock.value === 'locked',
+                   'bg-red-200': mainDoorLock.value === 'unlocked'
+                 }">
+              <svg v-if="isUnlockingDoor" class="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <svg v-else-if="mainDoorLock.value === 'locked'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path>
+              </svg>
+              <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+              </svg>
+            </div>
+            <span class="text-sm font-medium">
+              {{ isUnlockingDoor 
+                ? 'Processing...' 
+                : mainDoorLock.value === 'locked' 
+                  ? 'Unlock Main Door' 
+                  : 'Lock Main Door' 
+              }}
+            </span>
+            <span class="text-xs opacity-75 mt-1">
+              {{ mainDoorLock.location }}
+            </span>
+          </button>
+        </div>
+
         <router-link 
           to="/dashboard/monitoring" 
           class="flex items-center p-3 border border-gray-300 rounded-md hover:border-gray-400 transition-colors"
@@ -191,12 +232,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useStoreDataStore } from '@/stores/data'
+import type { Sensor } from '@/types'
 
 const authStore = useAuthStore()
 const dataStore = useStoreDataStore()
+const isUnlockingDoor = ref(false)
 
 const recentAlerts = computed(() => 
   dataStore.alerts.filter(alert => !alert.acknowledged).slice(0, 3)
@@ -209,6 +252,51 @@ const activeSensorsCount = computed(() =>
 const activeCamerasCount = computed(() => 
   dataStore.cameras.filter(camera => camera.isActive).length
 )
+
+// Find the main door lock sensor
+const mainDoorLock = computed(() => 
+  dataStore.sensors.find(sensor => 
+    sensor.type === 'door_lock' && 
+    (sensor.name.toLowerCase().includes('main') || sensor.name.toLowerCase().includes('entrance'))
+  )
+)
+
+const toggleMainDoorLock = async () => {
+  if (!mainDoorLock.value) {
+    alert('Main door lock not found!')
+    return
+  }
+  
+  const sensor = mainDoorLock.value
+  const action = sensor.value === 'locked' ? 'unlock' : 'lock'
+  const confirmMessage = action === 'unlock' 
+    ? `Are you sure you want to unlock the ${sensor.name}?`
+    : `Are you sure you want to lock the ${sensor.name}?`
+  
+  if (!confirm(confirmMessage)) {
+    return
+  }
+  
+  isUnlockingDoor.value = true
+  
+  try {
+    // Simulate API call to door control system
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // Toggle the lock state
+    sensor.value = sensor.value === 'locked' ? 'unlocked' : 'locked'
+    sensor.lastUpdate = new Date().toISOString()
+    
+    // Show success notification
+    alert(`${sensor.name} has been ${sensor.value}!`)
+    
+  } catch (error) {
+    console.error('Door lock toggle failed:', error)
+    alert(`Failed to ${action} ${sensor.name}. Please try again.`)
+  } finally {
+    isUnlockingDoor.value = false
+  }
+}
 
 const formatTime = (timestamp: string) => {
   const date = new Date(timestamp)

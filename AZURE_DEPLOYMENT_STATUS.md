@@ -6,7 +6,7 @@ Your Unattended Store Management System has been successfully deployed to Azure 
 
 ### 🌐 Live Application
 - **URL**: https://blue-cliff-02c53ef03.1.azurestaticapps.net
-- **Status**: ✅ Active
+- **Status**: 🔄 Deploying
 - **Environment**: Production
 
 ### 📊 Deployment Details

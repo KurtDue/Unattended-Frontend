@@ -52,7 +52,21 @@ export const authApi = {
               username: 'admin',
               role: 'administrator',
               stores: [
-                { id: 1, name: 'demostore1', displayName: 'Demo Store 1', isActive: true },
+                { 
+                  id: 1, 
+                  name: 'demostore1', 
+                  displayName: 'Demo Store 1', 
+                  isActive: true,
+                  address: 'Storgata 15',
+                  postalCode: '0104',
+                  city: 'Oslo',
+                  country: 'Norway',
+                  location: 'Oslo, Norway',
+                  coordinates: {
+                    latitude: 59.913869,
+                    longitude: 10.752245
+                  }
+                },
               ],
             },
             token: 'mock-jwt-token-' + Date.now(),

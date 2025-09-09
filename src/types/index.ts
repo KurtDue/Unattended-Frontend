@@ -12,6 +12,14 @@ export interface Store {
   name: string;
   displayName: string;
   location?: string;
+  address?: string;
+  postalCode?: string;
+  city?: string;
+  country?: string;
+  coordinates?: {
+    latitude: number | null;
+    longitude: number | null;
+  };
   isActive: boolean;
 }
 

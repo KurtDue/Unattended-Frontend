@@ -39,16 +39,101 @@
                 >
               </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-              <input 
-                v-model="storeSettings.location"
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
+            
+            <!-- Address Information -->
+            <div class="space-y-4">
+              <h4 class="text-sm font-medium text-gray-900 border-t pt-4">Address Information</h4>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+                <input 
+                  v-model="storeSettings.address"
+                  type="text" 
+                  placeholder="e.g., Storgata 15"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                  <input 
+                    v-model="storeSettings.postalCode"
+                    type="text" 
+                    placeholder="e.g., 0104"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                  <input 
+                    v-model="storeSettings.city"
+                    type="text" 
+                    placeholder="e.g., Oslo"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                <select 
+                  v-model="storeSettings.country"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="Norway">Norway</option>
+                  <option value="Sweden">Sweden</option>
+                  <option value="Denmark">Denmark</option>
+                  <option value="Finland">Finland</option>
+                </select>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button 
+                  @click="lookupCoordinates"
+                  :disabled="isLookingUp || !canLookupCoordinates"
+                  class="flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  {{ isLookingUp ? 'Looking up...' : 'Get Coordinates' }}
+                </button>
+                <span class="text-sm text-gray-500" v-if="coordinatesStatus">{{ coordinatesStatus }}</span>
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Operating Hours</label>
+            
+            <!-- Location Coordinates -->
+            <div class="space-y-4">
+              <h4 class="text-sm font-medium text-gray-900 border-t pt-4">Location Coordinates</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
+                  <input 
+                    v-model="storeSettings.coordinates.latitude"
+                    type="number" 
+                    step="0.000001"
+                    placeholder="e.g., 59.913869"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
+                  <input 
+                    v-model="storeSettings.coordinates.longitude"
+                    type="number" 
+                    step="0.000001"
+                    placeholder="e.g., 10.752245"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                </div>
+              </div>
+              <div v-if="storeSettings.coordinates.latitude && storeSettings.coordinates.longitude" class="text-sm text-gray-600">
+                <p>📍 Location: {{ storeSettings.coordinates.latitude }}, {{ storeSettings.coordinates.longitude }}</p>
+                <p class="mt-1">This location will be used for customer applications and services.</p>
+              </div>
+            </div>
+            
+            <!-- Operating Hours -->
+            <div class="space-y-4">
+              <h4 class="text-sm font-medium text-gray-900 border-t pt-4">Operating Hours</h4>
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="block text-xs text-gray-500 mb-1">Open Time</label>
@@ -341,7 +426,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -350,15 +435,77 @@ const isSaving = ref(false)
 const isTesting = ref(false)
 const isBackingUp = ref(false)
 const isClearingLogs = ref(false)
+const isLookingUp = ref(false)
+const coordinatesStatus = ref('')
 
 // Settings data
 const storeSettings = ref({
   name: '',
   displayName: '',
   location: '',
+  address: '',
+  postalCode: '',
+  city: '',
+  country: 'Norway',
+  coordinates: {
+    latitude: null as number | null,
+    longitude: null as number | null,
+  },
   openTime: '06:00',
   closeTime: '22:00',
 })
+
+// Computed property to check if we can lookup coordinates
+const canLookupCoordinates = computed(() => {
+  return storeSettings.value.address && 
+         storeSettings.value.city && 
+         storeSettings.value.country
+})
+
+// Function to lookup coordinates from address
+const lookupCoordinates = async () => {
+  if (!canLookupCoordinates.value) {
+    alert('Please fill in address, city, and country first.')
+    return
+  }
+  
+  isLookingUp.value = true
+  coordinatesStatus.value = 'Looking up coordinates...'
+  
+  try {
+    const fullAddress = `${storeSettings.value.address}, ${storeSettings.value.postalCode} ${storeSettings.value.city}, ${storeSettings.value.country}`
+    
+    // Using Nominatim OpenStreetMap API for geocoding (free and no API key required)
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1`)
+    
+    if (!response.ok) {
+      throw new Error('Geocoding service unavailable')
+    }
+    
+    const data = await response.json()
+    
+    if (data && data.length > 0) {
+      const location = data[0]
+      storeSettings.value.coordinates.latitude = parseFloat(location.lat)
+      storeSettings.value.coordinates.longitude = parseFloat(location.lon)
+      coordinatesStatus.value = `✅ Coordinates found: ${location.display_name}`
+      
+      // Update the location field with the full address
+      storeSettings.value.location = location.display_name
+    } else {
+      coordinatesStatus.value = '❌ Address not found. Please check your address details.'
+    }
+  } catch (error) {
+    console.error('Geocoding error:', error)
+    coordinatesStatus.value = '❌ Failed to lookup coordinates. Please try again later.'
+  } finally {
+    isLookingUp.value = false
+    // Clear status message after 5 seconds
+    setTimeout(() => {
+      coordinatesStatus.value = ''
+    }, 5000)
+  }
+}
 
 const alertSettings = ref({
   emailNotifications: true,

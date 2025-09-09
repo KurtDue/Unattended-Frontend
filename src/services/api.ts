@@ -52,8 +52,7 @@ export const authApi = {
               username: 'admin',
               role: 'administrator',
               stores: [
-                { id: 1, name: 'demolab1', displayName: 'Demo Lab 1', isActive: true },
-                { id: 2, name: 'demolab2', displayName: 'Demo Lab 2', isActive: true },
+                { id: 1, name: 'demostore1', displayName: 'Demo Store 1', isActive: true },
               ],
             },
             token: 'mock-jwt-token-' + Date.now(),

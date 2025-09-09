@@ -34,7 +34,7 @@
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-gray-500">Total Sales</p>
-            <p class="text-2xl font-semibold text-gray-900">${{ statistics?.totalSales.toLocaleString() || '0' }}</p>
+            <p class="text-2xl font-semibold text-gray-900">{{ statistics?.totalSales.toLocaleString() || '0' }} NOK</p>
             <p class="text-sm text-green-600">+12.5% from last period</p>
           </div>
         </div>

@@ -23,7 +23,7 @@ This Vue.js application provides a complete frontend interface for managing unat
 
 ### Authentication & Authorization
 - Secure login system with session management
-- Multi-store access control
+- Store access control
 - Automatic store selection for single-store users
 
 ### Real-time Monitoring
@@ -34,7 +34,7 @@ This Vue.js application provides a complete frontend interface for managing unat
 
 ### Data Management
 - Pinia state management for reactive data
-- Mock API with realistic data simulation
+- Mock API with realistic data simulation (NOK currency)
 - Local storage for settings persistence
 
 ### User Interface
@@ -61,9 +61,8 @@ The application is currently running at: **http://localhost:3000/**
 - **Username**: admin
 - **Password**: admin
 
-### Available Stores
-- demolab1 (Demo Lab 1)
-- demolab2 (Demo Lab 2)
+### Available Store
+- demostore1 (Demo Store 1)
 
 ## Development Notes
 

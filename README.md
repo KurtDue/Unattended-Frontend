@@ -71,9 +71,8 @@ Use these credentials to access the demo application:
 - **Username**: `admin`
 - **Password**: `admin`
 
-**Available Demo Stores**:
-- demolab1 (Demo Lab 1)
-- demolab2 (Demo Lab 2)
+**Available Demo Store**:
+- demostore1 (Demo Store 1)
 
 ## 📁 Project Structure
 
@@ -214,11 +213,11 @@ PUT    /api/alerts/{id}/acknowledge
 The application includes comprehensive mock data for:
 
 - User authentication (admin/admin)
-- Two demo stores (demolab1, demolab2)
+- Demo store (demostore1)
 - Sensor readings (temperature, door locks)
 - Sample alerts and incidents
 - Camera stream information
-- System statistics
+- System statistics with NOK currency
 
 ## 🛡️ Security Features
 

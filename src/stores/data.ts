@@ -131,7 +131,7 @@ export const useStoreDataStore = defineStore('storeData', () => {
       id: 1,
       name: 'Entrance Camera',
       location: 'Main Entrance',
-      streamUrl: 'rtsp://[CAMERA_IP]/onvif-media/media.amp?profile=profile_2_h264', // Replace [CAMERA_IP] with your Hanwha camera IP
+      streamUrl: 'http://[CAMERA_IP]/cgi-bin/snapshot.cgi', // Updated to HTTP snapshot - works directly in browsers!
       isActive: true,
       storeId: 1,
     },

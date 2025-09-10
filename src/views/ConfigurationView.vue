@@ -373,15 +373,42 @@
                     </div>
                     <div v-if="camera.id === 1" class="mt-2 p-3 bg-blue-50 rounded-md">
                       <p class="text-sm text-blue-800">
-                        <strong>Hanwha ANE-L7012R Configuration:</strong><br>
-                        Replace [CAMERA_IP] with your camera's IP address.<br>
-                        Common Hanwha RTSP URLs:
+                        <strong>Hanwha ANE-L7012R Connection Options:</strong><br>
+                        Replace [CAMERA_IP] with your camera's IP address.
                       </p>
-                      <ul class="text-xs text-blue-700 mt-2 space-y-1">
-                        <li>• Primary: rtsp://[IP]/onvif-media/media.amp?profile=profile_1_h264</li>
-                        <li>• Secondary: rtsp://[IP]/onvif-media/media.amp?profile=profile_2_h264</li>
-                        <li>• With auth: rtsp://username:password@[IP]/onvif-media/media.amp?profile=profile_2_h264</li>
-                      </ul>
+                      
+                      <div class="mt-3 space-y-2">
+                        <details class="text-xs text-blue-700">
+                          <summary class="cursor-pointer font-medium">🎥 RTSP Streams (requires media server)</summary>
+                          <ul class="mt-2 space-y-1 ml-4">
+                            <li>• Primary: rtsp://[IP]/onvif-media/media.amp?profile=profile_1_h264</li>
+                            <li>• Secondary: rtsp://[IP]/onvif-media/media.amp?profile=profile_2_h264</li>
+                            <li>• With auth: rtsp://username:password@[IP]/onvif-media/media.amp?profile=profile_2_h264</li>
+                          </ul>
+                        </details>
+                        
+                        <details class="text-xs text-blue-700">
+                          <summary class="cursor-pointer font-medium">📸 HTTP Snapshots (works directly)</summary>
+                          <ul class="mt-2 space-y-1 ml-4">
+                            <li>• http://[IP]/cgi-bin/snapshot.cgi</li>
+                            <li>• http://[IP]/snapshot.jpg</li>
+                            <li>• http://admin:password@[IP]/cgi-bin/snapshot.cgi</li>
+                          </ul>
+                        </details>
+                        
+                        <details class="text-xs text-blue-700">
+                          <summary class="cursor-pointer font-medium">🔄 MJPEG Streams (works directly)</summary>
+                          <ul class="mt-2 space-y-1 ml-4">
+                            <li>• http://[IP]/cgi-bin/mjpeg_stream.cgi</li>
+                            <li>• http://[IP]/mjpeg</li>
+                            <li>• http://admin:password@[IP]/cgi-bin/mjpeg_stream.cgi</li>
+                          </ul>
+                        </details>
+                      </div>
+                      
+                      <div class="mt-3 p-2 bg-green-100 rounded text-xs text-green-800">
+                        <strong>💡 Recommendation:</strong> Try HTTP Snapshot or MJPEG first - they work directly in browsers without additional setup!
+                      </div>
                     </div>
                   </div>
                   <div class="flex items-center justify-between md:col-span-2">

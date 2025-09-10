@@ -158,12 +158,44 @@ const dataStore = useStoreDataStore()
 const isLoading = ref(false)
 const fullscreenCamera = ref<CameraStream | null>(null)
 
-// Check if stream URL is a real camera stream vs demo
+// Enhanced stream detection functions
 const isRealStream = (streamUrl: string): boolean => {
-  return !streamUrl.includes('demo-stream-url') && 
-         (streamUrl.startsWith('rtsp://') || 
-          streamUrl.startsWith('http://') || 
-          streamUrl.startsWith('https://'))
+  return !streamUrl.includes('demo-stream-url')
+}
+
+const isMJPEGStream = (streamUrl: string): boolean => {
+  return streamUrl.includes('mjpeg') || 
+         streamUrl.includes('.mjpg') || 
+         streamUrl.includes('video.cgi')
+}
+
+const isSnapshotURL = (streamUrl: string): boolean => {
+  return streamUrl.includes('snapshot') || 
+         streamUrl.includes('.jpg') || 
+         streamUrl.includes('.jpeg') || 
+         streamUrl.includes('currentpic')
+}
+
+const isVideoStream = (streamUrl: string): boolean => {
+  return streamUrl.includes('.m3u8') || 
+         streamUrl.includes('.mp4') || 
+         streamUrl.startsWith('rtsp://')
+}
+
+const getStreamTypeLabel = (streamUrl: string): string => {
+  if (isMJPEGStream(streamUrl)) return 'MJPEG Stream'
+  if (isSnapshotURL(streamUrl)) return 'Snapshot Feed'
+  if (isVideoStream(streamUrl)) return 'Video Stream'
+  if (isRealStream(streamUrl)) return 'Loading Stream...'
+  return 'Demo Feed'
+}
+
+// Auto-refresh snapshots every 1 second
+const snapshotRefreshInterval = ref<number | null>(null)
+const getSnapshotUrl = (baseUrl: string): string => {
+  // Add timestamp to prevent caching
+  const separator = baseUrl.includes('?') ? '&' : '?'
+  return `${baseUrl}${separator}t=${Date.now()}`
 }
 
 // Convert RTSP to viewable format (this would typically be handled by a media server)
@@ -201,6 +233,14 @@ const onVideoLoadStart = (camera: CameraStream) => {
 const onVideoError = (camera: CameraStream) => {
   console.error(`Failed to load video stream for ${camera.name}`)
   // Could show error state or fallback content
+}
+
+const onImageLoad = (camera: CameraStream) => {
+  console.log(`Image loaded for ${camera.name}`)
+}
+
+const onImageError = (camera: CameraStream) => {
+  console.error(`Failed to load image for ${camera.name}`)
 }
 
 const activeCamerasCount = computed(() => 

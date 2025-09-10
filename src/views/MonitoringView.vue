@@ -22,21 +22,43 @@
         class="bg-white rounded-lg shadow overflow-hidden"
       >
         <div class="aspect-video bg-gray-900 relative">
-          <!-- Mock camera feed - in real implementation, this would be actual video stream -->
-          <div class="absolute inset-0 flex items-center justify-center">
-            <div v-if="camera.isActive" class="text-center">
-              <svg class="w-16 h-16 text-white mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-              </svg>
-              <p class="text-white text-sm">Live Feed</p>
-              <p class="text-gray-300 text-xs">{{ camera.streamUrl }}</p>
-              <!-- Simulated live indicator -->
-              <div class="flex items-center justify-center mt-2">
-                <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                <span class="text-red-400 text-xs font-medium">LIVE</span>
+          <!-- Real video stream or mock feed -->
+          <div v-if="camera.isActive" class="absolute inset-0">
+            <!-- Video element for actual streaming (when RTSP is converted to HLS/WebRTC) -->
+            <video 
+              v-if="isRealStream(camera.streamUrl)"
+              :ref="`video-${camera.id}`"
+              class="w-full h-full object-cover"
+              autoplay 
+              muted 
+              playsinline
+              @loadstart="onVideoLoadStart(camera)"
+              @error="onVideoError(camera)"
+            >
+              <source :src="getStreamUrl(camera.streamUrl)" type="application/x-mpegURL">
+              Your browser does not support the video tag.
+            </video>
+            
+            <!-- Fallback mock display for demo streams -->
+            <div v-else class="absolute inset-0 flex items-center justify-center">
+              <div class="text-center">
+                <svg class="w-16 h-16 text-white mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                <p class="text-white text-sm">{{ isRealStream(camera.streamUrl) ? 'Loading Stream...' : 'Demo Feed' }}</p>
+                <p class="text-gray-300 text-xs break-all px-4">{{ camera.streamUrl }}</p>
+                <!-- Live indicator -->
+                <div class="flex items-center justify-center mt-2">
+                  <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
+                  <span class="text-red-400 text-xs font-medium">LIVE</span>
+                </div>
               </div>
             </div>
-            <div v-else class="text-center">
+          </div>
+          
+          <!-- Camera offline state -->
+          <div v-else class="absolute inset-0 flex items-center justify-center">
+            <div class="text-center">
               <svg class="w-16 h-16 text-gray-500 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L5.636 5.636"></path>
               </svg>
@@ -135,6 +157,51 @@ import type { CameraStream } from '@/types'
 const dataStore = useStoreDataStore()
 const isLoading = ref(false)
 const fullscreenCamera = ref<CameraStream | null>(null)
+
+// Check if stream URL is a real camera stream vs demo
+const isRealStream = (streamUrl: string): boolean => {
+  return !streamUrl.includes('demo-stream-url') && 
+         (streamUrl.startsWith('rtsp://') || 
+          streamUrl.startsWith('http://') || 
+          streamUrl.startsWith('https://'))
+}
+
+// Convert RTSP to viewable format (this would typically be handled by a media server)
+const getStreamUrl = (rtspUrl: string): string => {
+  // In a real implementation, you would:
+  // 1. Use a media server (like Node Media Server, FFmpeg) to convert RTSP to HLS
+  // 2. Or use WebRTC for real-time streaming
+  // 3. Or use a service like Wowza, Ant Media Server, etc.
+  
+  // For now, return the URL as-is (would need media server conversion)
+  if (rtspUrl.includes('[CAMERA_IP]')) {
+    // Placeholder - user needs to replace with actual IP
+    return rtspUrl
+  }
+  
+  // Convert RTSP to HLS format (example)
+  // This assumes you have a media server converting RTSP to HLS
+  if (rtspUrl.startsWith('rtsp://')) {
+    const cameraIP = extractIPFromRTSP(rtspUrl)
+    return `http://${cameraIP}:8080/hls/stream.m3u8` // Example HLS endpoint
+  }
+  
+  return rtspUrl
+}
+
+const extractIPFromRTSP = (rtspUrl: string): string => {
+  const match = rtspUrl.match(/rtsp:\/\/([^\/]+)/)
+  return match ? match[1] : 'localhost'
+}
+
+const onVideoLoadStart = (camera: CameraStream) => {
+  console.log(`Loading video stream for ${camera.name}`)
+}
+
+const onVideoError = (camera: CameraStream) => {
+  console.error(`Failed to load video stream for ${camera.name}`)
+  // Could show error state or fallback content
+}
 
 const activeCamerasCount = computed(() => 
   dataStore.cameras.filter(camera => camera.isActive).length

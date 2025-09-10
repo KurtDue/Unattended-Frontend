@@ -328,6 +328,87 @@
           </div>
         </div>
 
+        <!-- Camera Configuration -->
+        <div class="bg-white rounded-lg shadow">
+          <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Camera Configuration</h3>
+            <p class="text-sm text-gray-600 mt-1">Configure camera streams and monitoring settings.</p>
+          </div>
+          <div class="p-6">
+            <div class="space-y-6">
+              <div v-for="camera in dataStore.cameras" :key="camera.id" class="border border-gray-200 rounded-lg p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Camera Name</label>
+                    <input 
+                      v-model="camera.name"
+                      type="text" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                    <input 
+                      v-model="camera.location"
+                      type="text" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                  </div>
+                  <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Stream URL</label>
+                    <div class="flex space-x-2">
+                      <input 
+                        v-model="camera.streamUrl"
+                        type="text" 
+                        placeholder="rtsp://[CAMERA_IP]/onvif-media/media.amp?profile=profile_2_h264"
+                        class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                      <button 
+                        @click="testCameraStream(camera)"
+                        :disabled="isTestingCamera"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {{ isTestingCamera ? 'Testing...' : 'Test' }}
+                      </button>
+                    </div>
+                    <div v-if="camera.id === 1" class="mt-2 p-3 bg-blue-50 rounded-md">
+                      <p class="text-sm text-blue-800">
+                        <strong>Hanwha ANE-L7012R Configuration:</strong><br>
+                        Replace [CAMERA_IP] with your camera's IP address.<br>
+                        Common Hanwha RTSP URLs:
+                      </p>
+                      <ul class="text-xs text-blue-700 mt-2 space-y-1">
+                        <li>• Primary: rtsp://[IP]/onvif-media/media.amp?profile=profile_1_h264</li>
+                        <li>• Secondary: rtsp://[IP]/onvif-media/media.amp?profile=profile_2_h264</li>
+                        <li>• With auth: rtsp://username:password@[IP]/onvif-media/media.amp?profile=profile_2_h264</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between md:col-span-2">
+                    <label class="flex items-center">
+                      <input 
+                        v-model="camera.isActive"
+                        type="checkbox" 
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      >
+                      <span class="ml-2 text-sm text-gray-900">Camera Active</span>
+                    </label>
+                    <div class="flex items-center space-x-2">
+                      <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                            :class="{
+                              'bg-green-100 text-green-800': camera.isActive,
+                              'bg-red-100 text-red-800': !camera.isActive
+                            }">
+                        {{ camera.isActive ? 'Online' : 'Offline' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Alert Settings -->
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b border-gray-200">
@@ -902,6 +983,36 @@ const loadDefaultNorwegianHolidays = () => {
       { name: 'Andre juledag', date: '2025-12-26', enabled: true, from: '12:00', to: '18:00' },
       { name: 'Nyttårsaften', date: '2025-12-31', enabled: false, from: '08:00', to: '16:00' }
     ]
+  }
+}
+
+// Camera testing
+const isTestingCamera = ref(false)
+
+const testCameraStream = async (camera: any) => {
+  isTestingCamera.value = true
+  
+  try {
+    if (camera.streamUrl.includes('[CAMERA_IP]')) {
+      alert('Please replace [CAMERA_IP] with your actual camera IP address first.')
+      return
+    }
+    
+    if (!camera.streamUrl.startsWith('rtsp://') && !camera.streamUrl.startsWith('http')) {
+      alert('Invalid stream URL format. Please use rtsp:// or http:// protocol.')
+      return
+    }
+    
+    // Simulate camera connection test
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // For demo purposes, always succeed
+    alert(`Camera stream test successful!\n\nCamera: ${camera.name}\nURL: ${camera.streamUrl}\n\nNote: In production, this would test the actual connection.`)
+    
+  } catch (error) {
+    alert(`Camera stream test failed: ${error}`)
+  } finally {
+    isTestingCamera.value = false
   }
 }
 

@@ -681,8 +681,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useStoreDataStore } from '@/stores/data'
 
 const authStore = useAuthStore()
+const dataStore = useStoreDataStore()
 
 const isSaving = ref(false)
 const isTesting = ref(false)

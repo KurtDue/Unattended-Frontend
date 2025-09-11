@@ -12,6 +12,7 @@ import AlertsView from '@/views/AlertsView.vue'
 import IncidentsView from '@/views/IncidentsView.vue'
 import StatisticsView from '@/views/StatisticsView.vue'
 import AssistanceView from '@/views/AssistanceView.vue'
+import AccessControlView from '@/views/AccessControlView.vue'
 import ConfigurationView from '@/views/ConfigurationView.vue'
 
 const router = createRouter({
@@ -83,6 +84,12 @@ const router = createRouter({
           name: 'assistance',
           component: AssistanceView,
           meta: { title: 'Assistance - Onitio Unattended' },
+        },
+        {
+          path: 'access-control',
+          name: 'access-control',
+          component: AccessControlView,
+          meta: { title: 'Access Control - Onitio Unattended' },
         },
         {
           path: 'configuration',

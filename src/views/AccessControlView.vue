@@ -154,11 +154,11 @@
           </div>
           <div class="p-6">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div v-for="method in accessMethods" :key="method.id" class="text-center p-4 rounded-lg border-2 transition-all" :class="method.enabled && !isLockdownActive ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'">
-                <component :is="method.icon" class="w-8 h-8 mx-auto mb-2" :class="method.enabled && !isLockdownActive ? 'text-green-600' : 'text-red-400'" />
+              <div v-for="method in accessMethods" :key="method.id" class="text-center p-4 rounded-lg border-2 transition-all" :class="getMethodStatusClass(method)">
+                <component :is="method.icon" class="w-8 h-8 mx-auto mb-2" :class="getMethodIconClass(method)" />
                 <p class="text-sm font-medium text-gray-900">{{ method.name }}</p>
-                <p class="text-xs" :class="method.enabled && !isLockdownActive ? 'text-green-600' : 'text-red-500'">
-                  {{ method.enabled && !isLockdownActive ? 'Active' : (isLockdownActive ? 'Lockdown' : 'Disabled') }}
+                <p class="text-xs" :class="getMethodTextClass(method)">
+                  {{ getMethodStatusText(method) }}
                 </p>
               </div>
             </div>
@@ -180,7 +180,7 @@
                   {{ isLockdownActive ? 'Lockdown Active' : 'Normal Operation' }}
                 </p>
                 <p class="text-sm" :class="isLockdownActive ? 'text-red-600' : 'text-green-600'">
-                  {{ isLockdownActive ? 'Customer access disabled' : 'All access methods enabled' }}
+                  {{ isLockdownActive ? 'Customer app access disabled' : 'All access methods enabled' }}
                 </p>
               </div>
               <button
@@ -204,9 +204,9 @@
             <div class="text-xs text-gray-500 p-3 bg-gray-50 rounded-md">
               <p class="font-medium mb-1">Lockdown Mode:</p>
               <ul class="space-y-1">
-                <li>• Disables customer app access</li>
-                <li>• Blocks receipt scan unlock</li>
-                <li>• Prevents NFC chip access</li>
+                <li>• Disables customer app access only</li>
+                <li>• Receipt scan remains active</li>
+                <li>• NFC chip access remains active</li>
                 <li>• Merchant app remains active</li>
               </ul>
             </div>
@@ -424,7 +424,7 @@ const accessLog = ref([
     method: 'Customer App',
     userId: 'customer_11111',
     status: 'Denied',
-    details: 'Lockdown mode active'
+    details: 'Customer app lockdown active'
   },
   {
     id: 7,
@@ -499,6 +499,27 @@ const unlockDoor = async () => {
   } finally {
     isUnlocking.value = false
   }
+}
+
+const getMethodStatusClass = (method: any) => {
+  const isMethodActive = method.enabled && !(isLockdownActive.value && method.id === 'customer')
+  return isMethodActive ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+}
+
+const getMethodIconClass = (method: any) => {
+  const isMethodActive = method.enabled && !(isLockdownActive.value && method.id === 'customer')
+  return isMethodActive ? 'text-green-600' : 'text-red-400'
+}
+
+const getMethodTextClass = (method: any) => {
+  const isMethodActive = method.enabled && !(isLockdownActive.value && method.id === 'customer')
+  return isMethodActive ? 'text-green-600' : 'text-red-500'
+}
+
+const getMethodStatusText = (method: any) => {
+  if (!method.enabled) return 'Disabled'
+  if (isLockdownActive.value && method.id === 'customer') return 'Lockdown'
+  return 'Active'
 }
 
 const lockDoor = async () => {

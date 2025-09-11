@@ -11,6 +11,7 @@ import SensorsView from '@/views/SensorsView.vue'
 import AlertsView from '@/views/AlertsView.vue'
 import IncidentsView from '@/views/IncidentsView.vue'
 import StatisticsView from '@/views/StatisticsView.vue'
+import AssistanceView from '@/views/AssistanceView.vue'
 import ConfigurationView from '@/views/ConfigurationView.vue'
 
 const router = createRouter({
@@ -76,6 +77,12 @@ const router = createRouter({
           name: 'statistics',
           component: StatisticsView,
           meta: { title: 'Statistics - Onitio Unattended' },
+        },
+        {
+          path: 'assistance',
+          name: 'assistance',
+          component: AssistanceView,
+          meta: { title: 'Assistance - Onitio Unattended' },
         },
         {
           path: 'configuration',

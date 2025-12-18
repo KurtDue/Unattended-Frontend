@@ -35,6 +35,18 @@
               controls
             ></video>
             
+            <!-- Loading indicator for HLS streams -->
+            <div 
+              v-if="isHLSStream(camera.streamUrl) && loadingStates.get(camera.id)"
+              class="absolute inset-0 flex items-center justify-center bg-gray-900 z-10"
+            >
+              <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-2"></div>
+                <p class="text-white text-sm">Connecting to stream...</p>
+                <p class="text-gray-400 text-xs mt-2 px-4 break-all">{{ camera.streamUrl }}</p>
+              </div>
+            </div>
+            
             <!-- MJPEG or other video streams -->
             <video 
               v-else-if="isRealStream(camera.streamUrl) && !isSnapshotURL(camera.streamUrl) && !isMJPEGStream(camera.streamUrl)"
@@ -161,7 +173,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useStoreDataStore } from '@/stores/data'
 import type { CameraStream } from '@/types'
 import Hls from 'hls.js'
@@ -170,6 +182,7 @@ const dataStore = useStoreDataStore()
 const isLoading = ref(false)
 const fullscreenCamera = ref<CameraStream | null>(null)
 const hlsInstances = ref<Map<number, Hls>>(new Map())
+const loadingStates = ref<Map<number, boolean>>(new Map())
 
 // Enhanced stream detection functions
 const isRealStream = (streamUrl: string): boolean => {
@@ -287,37 +300,66 @@ const closeFullscreen = () => {
 }
 
 const initializeHLSPlayer = async (camera: CameraStream) => {
-  if (!isHLSStream(camera.streamUrl)) return
+  if (!isHLSStream(camera.streamUrl)) {
+    console.log(`Camera ${camera.id} is not HLS stream, skipping`)
+    return
+  }
   
+  console.log(`Initializing HLS player for camera ${camera.id}: ${camera.streamUrl}`)
+  loadingStates.value.set(camera.id, true)
+  
+  // Wait for DOM to be ready
   await nextTick()
+  await new Promise(resolve => setTimeout(resolve, 100))
   
   const videoElement = document.querySelector(`video[data-camera-id="${camera.id}"]`) as HTMLVideoElement
-  if (!videoElement) return
+  if (!videoElement) {
+    console.error(`Video element not found for camera ${camera.id}`)
+    loadingStates.value.set(camera.id, false)
+    return
+  }
+  
+  console.log(`Found video element for camera ${camera.id}`)
   
   // Clean up existing instance if any
   if (hlsInstances.value.has(camera.id)) {
+    console.log(`Cleaning up existing HLS instance for camera ${camera.id}`)
     hlsInstances.value.get(camera.id)?.destroy()
     hlsInstances.value.delete(camera.id)
   }
   
   if (Hls.isSupported()) {
+    console.log(`HLS.js is supported, creating instance for camera ${camera.id}`)
     const hls = new Hls({
       enableWorker: true,
       lowLatencyMode: true,
-      backBufferLength: 90
+      backBufferLength: 90,
+      debug: false,
+      xhrSetup: (xhr, url) => {
+        console.log(`Loading HLS segment: ${url}`)
+      }
     })
     
     hls.loadSource(camera.streamUrl)
     hls.attachMedia(videoElement)
     
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      console.log(`HLS stream loaded for ${camera.name}`)
-      videoElement.play().catch(e => console.log('Autoplay prevented:', e))
+      console.log(`✅ HLS manifest parsed successfully for ${camera.name}`)
+      loadingStates.value.set(camera.id, false)
+      videoElement.play().catch(e => {
+        console.log('Autoplay prevented, user interaction required:', e)
+      })
+    })
+    
+    hls.on(Hls.Events.FRAG_LOADED, () => {
+      console.log(`Fragment loaded for camera ${camera.id}`)
     })
     
     hls.on(Hls.Events.ERROR, (event, data) => {
-      console.error('HLS Error:', data)
+      console.error(`❌ HLS Error for camera ${camera.id}:`, data)
+      
       if (data.fatal) {
+        loadingStates.value.set(camera.id, false)
         switch(data.type) {
           case Hls.ErrorTypes.NETWORK_ERROR:
             console.log('Network error, trying to recover...')
@@ -328,6 +370,7 @@ const initializeHLSPlayer = async (camera: CameraStream) => {
             hls.recoverMediaError()
             break
           default:
+            console.error('Fatal error, cannot recover')
             hls.destroy()
             hlsInstances.value.delete(camera.id)
             break
@@ -338,23 +381,52 @@ const initializeHLSPlayer = async (camera: CameraStream) => {
     hlsInstances.value.set(camera.id, hls)
   } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
     // Native HLS support (Safari)
+    console.log(`Using native HLS support for camera ${camera.id}`)
     videoElement.src = camera.streamUrl
-    videoElement.play().catch(e => console.log('Autoplay prevented:', e))
+    videoElement.addEventListener('loadedmetadata', () => {
+      console.log(`✅ Native HLS loaded for ${camera.name}`)
+      loadingStates.value.set(camera.id, false)
+    })
+    videoElement.play().catch(e => {
+      console.log('Autoplay prevented:', e)
+      loadingStates.value.set(camera.id, false)
+    })
+  } else {
+    console.error('HLS not supported in this browser')
+    loadingStates.value.set(camera.id, false)
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  console.log('MonitoringView mounted, cameras:', dataStore.cameras)
+  
+  // Wait a bit for DOM to be fully ready
+  await nextTick()
+  await new Promise(resolve => setTimeout(resolve, 200))
+  
   // Initialize HLS players for all HLS cameras
-  dataStore.cameras.forEach(camera => {
+  for (const camera of dataStore.cameras) {
     if (camera.isActive && isHLSStream(camera.streamUrl)) {
-      initializeHLSPlayer(camera)
+      await initializeHLSPlayer(camera)
     }
-  })
+  }
 })
 
+// Watch for camera changes and reinitialize if needed
+watch(() => dataStore.cameras, async (newCameras) => {
+  console.log('Cameras changed, reinitializing HLS players')
+  for (const camera of newCameras) {
+    if (camera.isActive && isHLSStream(camera.streamUrl) && !hlsInstances.value.has(camera.id)) {
+      await initializeHLSPlayer(camera)
+    }
+  }
+}, { deep: true })
+
 onUnmounted(() => {
+  console.log('Cleaning up HLS instances')
   // Clean up all HLS instances
   hlsInstances.value.forEach(hls => hls.destroy())
   hlsInstances.value.clear()
+  loadingStates.value.clear()
 })
 </script>

@@ -137,9 +137,9 @@ export const useStoreDataStore = defineStore('storeData', () => {
     },
     {
       id: 2,
-      name: 'Store Floor Overview',
+      name: 'Store Floor Overview (Live HLS)',
       location: 'Center Ceiling',
-      streamUrl: 'rtsp://demo-stream-url-2',
+      streamUrl: 'http://mediamtx-vm.northeurope.cloudapp.azure.com:8888/live/index.m3u8',
       isActive: true,
       storeId: 1,
     },

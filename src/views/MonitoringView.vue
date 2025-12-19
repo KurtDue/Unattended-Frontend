@@ -24,9 +24,9 @@
         <div class="aspect-video bg-gray-900 relative">
           <!-- Real video stream or mock feed -->
           <div v-if="camera.isActive" class="absolute inset-0">
-            <!-- HLS Video Player -->
+            <!-- WebRTC Video Player -->
             <video 
-              v-if="isHLSStream(camera.streamUrl)"
+              v-if="isWebRTCStream(camera.streamUrl)"
               :data-camera-id="camera.id"
               class="w-full h-full object-cover bg-black"
               autoplay 
@@ -35,14 +35,25 @@
               controls
             ></video>
             
-            <!-- Loading indicator for HLS streams -->
+            <!-- HLS Video Player -->
+            <video 
+              v-else-if="isHLSStream(camera.streamUrl)"
+              :data-camera-id="camera.id"
+              class="w-full h-full object-cover bg-black"
+              autoplay 
+              muted 
+              playsinline
+              controls
+            ></video>
+            
+            <!-- Loading indicator for WebRTC/HLS streams -->
             <div 
-              v-if="isHLSStream(camera.streamUrl) && loadingStates.get(camera.id)"
+              v-if="(isWebRTCStream(camera.streamUrl) || isHLSStream(camera.streamUrl)) && loadingStates.get(camera.id)"
               class="absolute inset-0 flex items-center justify-center bg-gray-900 z-10"
             >
               <div class="text-center">
                 <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-2"></div>
-                <p class="text-white text-sm">Connecting to stream...</p>
+                <p class="text-white text-sm">Connecting to {{ isWebRTCStream(camera.streamUrl) ? 'WebRTC' : 'HLS' }} stream...</p>
                 <p class="text-gray-400 text-xs mt-2 px-4 break-all">{{ camera.streamUrl }}</p>
               </div>
             </div>
@@ -182,6 +193,7 @@ const dataStore = useStoreDataStore()
 const isLoading = ref(false)
 const fullscreenCamera = ref<CameraStream | null>(null)
 const hlsInstances = ref<Map<number, Hls>>(new Map())
+const webrtcConnections = ref<Map<number, RTCPeerConnection>>(new Map())
 const loadingStates = ref<Map<number, boolean>>(new Map())
 
 // Enhanced stream detection functions
@@ -203,6 +215,9 @@ const isSnapshotURL = (streamUrl: string): boolean => {
 }
 const isHLSStream = (streamUrl: string): boolean => {
   return streamUrl.includes('.m3u8') || streamUrl.includes('hls')
+}
+const isWebRTCStream = (streamUrl: string): boolean => {
+  return streamUrl.includes(':8889') || streamUrl.toLowerCase().includes('webrtc')
 }
 const isVideoStream = (streamUrl: string): boolean => {
   return streamUrl.includes('.m3u8') || 
@@ -397,6 +412,94 @@ const initializeHLSPlayer = async (camera: CameraStream) => {
   }
 }
 
+const initializeWebRTCPlayer = async (camera: CameraStream) => {
+  if (!isWebRTCStream(camera.streamUrl)) {
+    console.log(`Camera ${camera.id} is not WebRTC stream, skipping`)
+    return
+  }
+  
+  console.log(`Initializing WebRTC player for camera ${camera.id}: ${camera.streamUrl}`)
+  loadingStates.value.set(camera.id, true)
+  
+  // Wait for DOM to be ready
+  await nextTick()
+  await new Promise(resolve => setTimeout(resolve, 100))
+  
+  const videoElement = document.querySelector(`video[data-camera-id="${camera.id}"]`) as HTMLVideoElement
+  if (!videoElement) {
+    console.error(`Video element not found for camera ${camera.id}`)
+    loadingStates.value.set(camera.id, false)
+    return
+  }
+  
+  console.log(`Found video element for camera ${camera.id}`)
+  
+  // Clean up existing connection if any
+  if (webrtcConnections.value.has(camera.id)) {
+    console.log(`Cleaning up existing WebRTC connection for camera ${camera.id}`)
+    webrtcConnections.value.get(camera.id)?.close()
+    webrtcConnections.value.delete(camera.id)
+  }
+  
+  try {
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      bundlePolicy: 'max-bundle'
+    })
+    
+    pc.ontrack = (event) => {
+      console.log(`✅ WebRTC track received for ${camera.name}`)
+      videoElement.srcObject = event.streams[0]
+      loadingStates.value.set(camera.id, false)
+      videoElement.play().catch(e => {
+        console.log('Autoplay prevented:', e)
+      })
+    }
+    
+    pc.oniceconnectionstatechange = () => {
+      console.log(`WebRTC ICE state for camera ${camera.id}: ${pc.iceConnectionState}`)
+      if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+        console.error(`WebRTC connection failed for camera ${camera.id}`)
+        loadingStates.value.set(camera.id, false)
+      }
+    }
+    
+    // Add transceiver for receiving video
+    pc.addTransceiver('video', { direction: 'recvonly' })
+    pc.addTransceiver('audio', { direction: 'recvonly' })
+    
+    // Create offer
+    const offer = await pc.createOffer()
+    await pc.setLocalDescription(offer)
+    
+    // Send offer to MediaMTX server
+    const response = await fetch(camera.streamUrl + '/whep', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/sdp',
+      },
+      body: offer.sdp
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to connect to WebRTC stream: ${response.status} ${response.statusText}`)
+    }
+    
+    const answerSdp = await response.text()
+    await pc.setRemoteDescription(new RTCSessionDescription({
+      type: 'answer',
+      sdp: answerSdp
+    }))
+    
+    console.log(`✅ WebRTC connection established for ${camera.name}`)
+    webrtcConnections.value.set(camera.id, pc)
+    
+  } catch (error) {
+    console.error(`❌ WebRTC error for camera ${camera.id}:`, error)
+    loadingStates.value.set(camera.id, false)
+  }
+}
+
 onMounted(async () => {
   console.log('MonitoringView mounted, cameras:', dataStore.cameras)
   
@@ -404,29 +507,42 @@ onMounted(async () => {
   await nextTick()
   await new Promise(resolve => setTimeout(resolve, 200))
   
-  // Initialize HLS players for all HLS cameras
+  // Initialize players for all active cameras
   for (const camera of dataStore.cameras) {
-    if (camera.isActive && isHLSStream(camera.streamUrl)) {
-      await initializeHLSPlayer(camera)
+    if (camera.isActive) {
+      if (isHLSStream(camera.streamUrl)) {
+        await initializeHLSPlayer(camera)
+      } else if (isWebRTCStream(camera.streamUrl)) {
+        await initializeWebRTCPlayer(camera)
+      }
     }
   }
 })
 
 // Watch for camera changes and reinitialize if needed
 watch(() => dataStore.cameras, async (newCameras) => {
-  console.log('Cameras changed, reinitializing HLS players')
+  console.log('Cameras changed, reinitializing players')
   for (const camera of newCameras) {
-    if (camera.isActive && isHLSStream(camera.streamUrl) && !hlsInstances.value.has(camera.id)) {
-      await initializeHLSPlayer(camera)
+    if (camera.isActive) {
+      if (isHLSStream(camera.streamUrl) && !hlsInstances.value.has(camera.id)) {
+        await initializeHLSPlayer(camera)
+      } else if (isWebRTCStream(camera.streamUrl) && !webrtcConnections.value.has(camera.id)) {
+        await initializeWebRTCPlayer(camera)
+      }
     }
   }
 }, { deep: true })
 
 onUnmounted(() => {
-  console.log('Cleaning up HLS instances')
+  console.log('Cleaning up media instances')
   // Clean up all HLS instances
   hlsInstances.value.forEach(hls => hls.destroy())
   hlsInstances.value.clear()
+  
+  // Clean up all WebRTC connections
+  webrtcConnections.value.forEach(pc => pc.close())
+  webrtcConnections.value.clear()
+  
   loadingStates.value.clear()
 })
 </script>

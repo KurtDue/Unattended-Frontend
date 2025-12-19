@@ -65,10 +65,6 @@
             {{ isLoading ? 'Signing in...' : 'Sign in' }}
           </button>
         </div>
-        
-        <div class="text-center text-sm text-gray-600">
-          <p>Demo credentials: admin / admin</p>
-        </div>
       </form>
     </div>
   </div>

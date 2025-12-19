@@ -43,7 +43,7 @@ export const authApi = {
   async login(credentials: LoginCredentials): Promise<ApiResponse<{ user: User; token: string }>> {
     try {
       // Mock authentication for development
-      if (credentials.username === 'admin' && credentials.password === 'admin') {
+      if (credentials.username === 'osoadmin' && credentials.password === '4055123') {
         const mockResponse = {
           success: true,
           data: {

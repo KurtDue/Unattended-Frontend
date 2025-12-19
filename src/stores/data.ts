@@ -145,18 +145,18 @@ export const useStoreDataStore = defineStore('storeData', () => {
     },
     {
       id: 3,
-      name: 'Cash Register Area',
+      name: 'Cash Register Area (HLS)',
       location: 'Checkout',
-      streamUrl: 'rtsp://demo-stream-url-3',
+      streamUrl: 'https://mediamtx-vm.northeurope.cloudapp.azure.com/cam3/index.m3u8',
       isActive: true,
       storeId: 1,
     },
     {
       id: 4,
-      name: 'Storage Room',
+      name: 'Storage Room (HLS)',
       location: 'Back Storage',
-      streamUrl: 'rtsp://demo-stream-url-4',
-      isActive: false,
+      streamUrl: 'https://mediamtx-vm.northeurope.cloudapp.azure.com/cam4/index.m3u8',
+      isActive: true,
       storeId: 1,
     },
   ]

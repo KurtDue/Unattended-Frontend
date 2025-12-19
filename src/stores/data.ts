@@ -129,15 +129,15 @@ export const useStoreDataStore = defineStore('storeData', () => {
   const mockCameras: CameraStream[] = [
     {
       id: 1,
-      name: 'Entrance Camera (WebRTC)',
+      name: 'Entrance Camera (HLS)',
       location: 'Main Entrance',
-      streamUrl: 'https://mediamtx-vm.northeurope.cloudapp.azure.com:8889/cam2',
+      streamUrl: 'https://mediamtx-vm.northeurope.cloudapp.azure.com/cam1/index.m3u8',
       isActive: true,
       storeId: 1,
     },
     {
       id: 2,
-      name: 'Store Floor Overview (HTTPS HLS)',
+      name: 'Store Floor Overview (HLS)',
       location: 'Center Ceiling',
       streamUrl: 'https://mediamtx-vm.northeurope.cloudapp.azure.com/cam2/index.m3u8',
       isActive: true,

@@ -58,23 +58,8 @@
               </div>
             </div>
             
-            <!-- MJPEG or other video streams -->
-            <video 
-              v-else-if="isRealStream(camera.streamUrl) && !isSnapshotURL(camera.streamUrl) && !isMJPEGStream(camera.streamUrl)"
-              :ref="`video-${camera.id}`"
-              class="w-full h-full object-cover"
-              autoplay 
-              muted 
-              playsinline
-              @loadstart="onVideoLoadStart(camera)"
-              @error="onVideoError(camera)"
-            >
-              <source :src="getStreamUrl(camera.streamUrl)" type="application/x-mpegURL">
-              Your browser does not support the video tag.
-            </video>
-            
             <!-- Fallback mock display for demo streams -->
-            <div v-else class="absolute inset-0 flex items-center justify-center">
+            <div v-else-if="!isWebRTCStream(camera.streamUrl) && !isHLSStream(camera.streamUrl)" class="absolute inset-0 flex items-center justify-center">
               <div class="text-center">
                 <svg class="w-16 h-16 text-white mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>

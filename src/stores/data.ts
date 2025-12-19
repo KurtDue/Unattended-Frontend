@@ -131,7 +131,7 @@ export const useStoreDataStore = defineStore('storeData', () => {
       id: 1,
       name: 'Entrance Camera (WebRTC)',
       location: 'Main Entrance',
-      streamUrl: 'http://mediamtx-vm.northeurope.cloudapp.azure.com:8889/cam2',
+      streamUrl: 'https://mediamtx-vm.northeurope.cloudapp.azure.com:8889/cam2',
       isActive: true,
       storeId: 1,
     },
